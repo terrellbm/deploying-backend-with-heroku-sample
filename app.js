@@ -1,17 +1,70 @@
-const express = require('express'); // import express module (simplifies routing/requests, among other things)
-const app = express(); // create an instance of the express module (app is the conventional variable name used)
-const fetch = require('node-fetch'); // import node-fetch (enables the fetch API to be used server-side)
-const PORT = process.env.PORT || 5000; // use either the host env var port (PORT) provided by Heroku or the local port (5000) on your machine
+const express = require('express'); // Express is a node.js framework for building servers with api endpoints. We will use this framework to build our server and then deploy our server using a service like heroku
+const cors = require('cors');
+const app = express();
+const port = 3001;
+const { Configuration, OpenAIApi } = require("openai"); // Import OpenAI
+const { response } = require('express');
 
-app.get('/', (req, res) => { // send a get request to root directory ('/' is this file (app.js))
-  fetch('https://www.boredapi.com/api/activity') // fetch activity from bored API - https://www.boredapi.com/about
-    .then(res => res.json()) // return a promise containing the response
-    .then(json => res.send(`<h1>Today's Activity: ${json.activity}!</h1>`)) // extract the JSON body content from the response (specifically the activity value) and sends it to the client
-    .catch(function(err){ // catch any errors
-      console.log(err); // log errors to the console
-    })
-})
+//API Key for OpenAI
+const configuration = new Configuration({
+  apiKey: "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",
+});
+const openai = new OpenAIApi(configuration);
+app.use(express.json());
+app.use(cors());
 
-app.listen(PORT, () => { // start server and listen on specified port
-  console.log(`App is running on ${PORT}`) // confirm server is running and log port to the console
-}) 
+// Test API Endpoint 
+app.post('/', (req, res) => {
+    console.log(req.body);
+    res.json({
+        message: req.body
+    });
+});
+
+//API Endpoint. If API request is not formatted correctly - return. Otherwise feed in request as a prompt 
+app.post('/QuestionAndAnswer', async (req, res) => {
+    const request = req.body.prompt;
+    console.log("\nRequest received!⏹  Request is shown below 🔽");
+    console.log(request);
+    console.log("\n");
+    if(!request)
+    {
+        console.log("Request is undefined. Ensure key for JSON is 'prompt'");
+        res.json({
+            message: "Request is undefined. Ensure key for JSON is 'prompt'"
+        })
+        return
+    }
+
+    try {
+        const response = await openai.createCompletion({
+            model: "text-davinci-003",
+            prompt: "Q: " + request + "A:",
+            temperature: 0,
+            max_tokens: 500,
+            top_p: 1,
+            frequency_penalty: 0,
+            presence_penalty: 0,
+            stop: ["Q:"],
+          });
+
+        console.log("Response from OpenAI received!✅ Response to client is shown below 🔽");
+        console.log(response.data.choices[0].text);
+        res.json({
+            message: response.data.choices[0].text
+        });
+    } catch (err) {
+        res.json({
+            message: err.message
+        })
+        
+    }
+
+});
+
+
+
+app.listen(process.env.PORT || port, async () => {
+    console.log('Example app listening on http://localhost:' + port); 
+});
+
