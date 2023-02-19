@@ -7,7 +7,7 @@ const { Configuration, OpenAIApi } = require("openai"); // Import OpenAI
 
 //API Key for OpenAI
 const configuration = new Configuration({
-  apiKey: "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",
+  apiKey: "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",
 });
 const openai = new OpenAIApi(configuration);
 app.use(express.json());
